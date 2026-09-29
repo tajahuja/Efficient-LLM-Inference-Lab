@@ -1,6 +1,6 @@
 # Results summary
 
-**Run:** standard mode; 15 aggregate rows; x86_64 CPU; 9 visible logical CPUs; Python 3.12.14; NumPy 2.3.5. No GPU was detected.
+**Run:** standard mode; 15 aggregate rows; INTEL(R) XEON(R) PLATINUM 8573C CPU; 9 visible logical CPUs; Python 3.12.14; NumPy 2.3.5. No GPU was detected.
 
 Randomly initialized Transformer; CPU microbenchmark, not a pretrained language-model evaluation.
 
@@ -16,7 +16,7 @@ All latencies below are medians from five timed repeats in standard mode. They a
 | 128 | 2.559 | 4.692 | 139,264 |
 | 256 | 7.425 | 9.891 | 270,336 |
 
-At batch 1 and fixed model/output length, prefill latency rose from 0.316 ms at 16 tokens to 7.220 ms at 256 tokens. Logical FP32 KV payload rose linearly from 24,576 to 270,336 bytes (context plus 8 output tokens). Dense attention work and larger temporary arrays are plausible contributors. This does not predict long-context behavior in other architectures or kernels.
+At batch 1 and fixed model/output length, prefill latency rose from 0.370 ms at 16 tokens to 7.425 ms at 256 tokens. Logical FP32 KV payload rose from 24,576 to 270,336 bytes (prompt plus generated tokens). Dense attention work and larger temporary arrays are plausible contributors. This does not predict long-context behavior in other architectures or kernels.
 
 ## Batch scaling
 
@@ -27,7 +27,7 @@ At batch 1 and fixed model/output length, prefill latency rose from 0.316 ms at 
 | 4 | 4.840 | 1.210 | 6611.7 |
 | 8 | 10.229 | 1.279 | 6256.5 |
 
-Aggregate throughput rose from 3,050.9 tokens/s at batch 1 to 7,178.2 at batch 4, then measured 6,569.8 at batch 8. Amortized per-request latency fell from 2.622 ms to 1.114 ms at batch 4 and was 1.218 ms at batch 8. These tiny CPU/NumPy runs are short and sensitive to system noise and BLAS behavior; aggregate latency divided by batch is not a per-request serving latency.
+Aggregate throughput rose from 3510.5 tokens/s at batch 1 to 6611.7 at batch 4, then measured 6256.5 at batch 8. Amortized per-request latency was 2.279 ms at batch 1, 1.210 ms at batch 4, and 1.279 ms at batch 8. These short CPU/NumPy runs are sensitive to system noise and BLAS behavior; aggregate batch latency divided by batch size is not observed per-request serving latency.
 
 ## Model width scaling
 
@@ -36,7 +36,7 @@ Aggregate throughput rose from 3,050.9 tokens/s at batch 1 to 7,178.2 at batch 4
 | small | 32 | 163,840 | 36,864 | 1.518 |
 | base | 64 | 524,288 | 73,728 | 1.641 |
 
-Doubling width from 32 to 64 increased parameter payload about 3.2x because the embedding/output and feed-forward matrices scale differently from width alone. Latency increased modestly in this two-point sample. There are only two untrained configurations, so this is not a scaling law or pretrained model-size study.
+Width increased from 32 to 64; parameter payload increased from 163,840 to 524,288 bytes, while end-to-end latency was 1.518 ms and 1.641 ms. There are only two untrained configurations, so this is not a scaling law or pretrained model-size study.
 
 ## Weight precision comparison
 
@@ -45,7 +45,7 @@ Doubling width from 32 to 64 increased parameter payload about 3.2x because the 
 | float32 | 524,288 | FP32 | 1.702 | 0.000000 | True |
 | float16 | 262,144 | FP32 | 39.114 | 0.007082 | True |
 
-FP16 halved the weight-array payload but ran much slower in this NumPy CPU implementation (39.254 ms versus 2.202 ms end-to-end). The tested prompt produced the same greedy next token with max absolute logit difference 0.007082. This is one synthetic prompt, not a quality assessment. NumPy CPU FP16 support and execution path explain more than hardware accelerator behavior may; no claim about GPU half precision follows. KV remains FP32 in both rows.
+FP16 halved the weight-array payload compared with FP32, while median end-to-end latency was 39.114 ms versus 1.702 ms in this NumPy CPU implementation. The one tested prompt produced the same greedy next token with max absolute logit difference 0.007082. This is not a quality assessment. CPU NumPy FP16 behavior does not predict accelerator half-precision performance; KV remained FP32.
 
 ## KV cache comparison
 
@@ -54,12 +54,12 @@ FP16 halved the weight-array payload but ran much slower in this NumPy CPU imple
 | Incremental KV reuse | 1.571 | 7079.0 |
 | Full-prefix recomputation | 5.044 | 1594.0 |
 
-The incremental cache path took 2.197 ms, compared with 6.807 ms for full-prefix recomputation on the same prompt/model/output setting. This is a useful correctness/performance check for the two local code paths, but its magnitude is implementation-dependent and not a serving-engine estimate. Greedy outputs match in unit tests.
+Incremental KV reuse measured 1.571 ms compared with 5.044 ms for full-prefix recomputation on the same prompt/model/output setting. This is a correctness/performance check of two local code paths, not an optimized serving-engine estimate. Greedy outputs match in unit tests.
 
-## Interpretations and limitations
+## Interpretation and limitations
 
-- Changes were isolated by holding seed, model, and workload settings fixed within each experiment, except for the parameter varied in that experiment.
-- Plausible alternative explanations include BLAS threading, Python and NumPy overhead, memory allocation, CPU frequency, thermal state, and host contention.
+- Within each experiment, seed, model, and workload settings were held fixed except for the factor under test.
+- Plausible alternative explanations include BLAS threading, Python and NumPy overhead, temporary allocation, CPU frequency, thermal state, and host contention.
 - Weight/KV payload figures are array/tensor-size accounting, not measured process or accelerator peak memory.
-- No GPU, pretrained model, INT8/4-bit quantization, live-serving queue, TTFT callback, quality benchmark, or significance test was run.
+- No GPU, pretrained model, INT8/4-bit quantization, online serving queue, streaming TTFT callback, quality benchmark, or significance test was run.
 - These measurements do not establish a universal ranking or efficiency claim. See `../docs/limitations.md`.

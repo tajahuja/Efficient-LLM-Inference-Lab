@@ -1,0 +1,11 @@
+{
+  "os": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "architecture": "x86_64",
+  "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "cgroup_memory_limit_bytes": "8589934592",
+  "logical_cpu_count": 9,
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "gpu": null,
+  "gpu_probe": "nvidia-smi not available"
+}

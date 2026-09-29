@@ -1,0 +1,14 @@
+# The executable defaults live in inference_lab.benchmark so this file is
+# descriptive and editable by humans; no hidden hardware auto-tuning is used.
+quick:
+  model: {vocab_size: 256, d_model: 64, n_heads: 4, n_layers: 2, seed: 17, dtype: float32}
+  contexts: [16, 32, 64]
+  batches: [1, 2, 4]
+  generated_tokens: 4
+  repeats: 3
+standard:
+  model: {vocab_size: 256, d_model: 64, n_heads: 4, n_layers: 2, seed: 17, dtype: float32}
+  contexts: [16, 32, 64, 128, 256]
+  batches: [1, 2, 4, 8]
+  generated_tokens: 8
+  repeats: 5

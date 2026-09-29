@@ -1,0 +1,7 @@
+# No pretrained checkpoint is bundled or selected. The only executed model is
+# the seeded synthetic decoder documented in docs/methodology.md.
+models:
+  - id: synthetic-tiny-decoder-v1
+    implementation: NumPy TinyDecoder
+    trained: false
+    license: project MIT license applies to code; no external weights used

@@ -2,7 +2,7 @@
 
 ## Abstract
 
-This study measures context length, fixed batch size, model width, weight precision, and explicit KV reuse in a small NumPy decoder-only Transformer on one CPU host. The model has seeded random weights and synthetic token IDs; it is not a pretrained language model. In the standard run, prefill median increased from 0.316 ms at a 16-token prompt to 7.220 ms at 256 tokens. Aggregate throughput rose from 3,050.9 tokens/s at batch 1 to 7,178.2 at batch 4, then measured 6,569.8 at batch 8. FP16 halved weight-array payload but was slower than FP32 in this CPU NumPy implementation. Incremental KV reuse was faster than recomputing the prefix in this implementation. These measurements characterize only the executed code path and environment; they do not establish pretrained-model quality or GPU/serving behavior.
+This study measures context length, fixed batch size, model width, weight precision, and explicit KV reuse in a small NumPy decoder-only Transformer on one CPU host. The model has seeded random weights and synthetic token IDs; it is not a pretrained language model. In the standard run, prefill median increased from 0.370 ms at a 16-token prompt to 7.425 ms at 256 tokens. Aggregate throughput rose from 3510.5 tokens/s at batch 1 to 6611.7 at batch 4, then measured 6256.5 at batch 8. FP16 halved weight-array payload but was slower than FP32 in this CPU NumPy implementation. Incremental KV reuse measured 1.571 ms versus 5.044 ms for recomputing the prefix in this implementation. These measurements characterize only the executed code path and environment; they do not establish pretrained-model quality or GPU/serving behavior.
 
 ## Introduction
 
@@ -47,11 +47,11 @@ The result JSON and CSV report prefill, decode, and end-to-end timing; generatio
 
 The standard run produced 15 rows across five workload types. Detailed tables are in `results/summary.md`.
 
-- Prefill median rose from 0.316 ms (16 prompt tokens) to 7.220 ms (256 tokens), batch size 1.
-- Aggregate throughput rose from 3,050.9 tokens/s at batch 1 to 7,178.2 at batch 4, and was 6,569.8 at batch 8. Amortized per-request latency was not monotonic: 2.622 ms, 1.114 ms, 1.218 ms for batch sizes 1, 4, and 8, respectively.
-- Width 32 used 163,840 bytes of parameter arrays and measured 1.961 ms end-to-end; width 64 used 524,288 bytes and measured 2.193 ms under the same prompt and batch.
-- FP16 used 262,144 parameter bytes versus 524,288 in FP32, while end-to-end latency was 39.254 ms versus 2.202 ms. On the fixed synthetic prompt, next-token argmax agreed and max absolute logit difference was 0.007082.
-- Incremental KV reuse measured 2.197 ms end-to-end versus 6.807 ms for full-prefix recomputation.
+- Prefill median rose from 0.370 ms (16 prompt tokens) to 7.425 ms (256 tokens), batch size 1.
+- Aggregate throughput rose from 3510.5 tokens/s at batch 1 to 6611.7 at batch 4, and was 6256.5 at batch 8. Amortized per-request latency was not monotonic: 2.279 ms, 1.210 ms, 1.279 ms for batch sizes 1, 4, and 8, respectively.
+- Width 32 used 163,840 bytes of parameter arrays and measured 1.961 ms end-to-end; width 64 used 524,288 bytes and measured 1.641 ms under the same prompt and batch.
+- FP16 used 262,144 parameter bytes versus 524,288 in FP32, while end-to-end latency was 39.114 ms versus 1.702 ms. On the fixed synthetic prompt, next-token argmax agreed and max absolute logit difference was 0.007082.
+- Incremental KV reuse measured 1.571 ms end-to-end versus 5.044 ms for full-prefix recomputation.
 
 ## Analysis
 
@@ -68,3 +68,7 @@ Install `.[test,plots]`, run `pytest`, execute `python experiments/run_benchmark
 ## Future Research
 
 Add a licensed pretrained small model, verify output quality, repeat on an actual GPU, measure peak device memory, compare INT8/4-bit weights and cache with quality checks, and test request arrivals/queueing/TTFT with a serving engine.
+
+## Conclusions
+
+On this single CPU implementation, the standard run measured higher prefill latency at longer tested prompts, improved aggregate throughput through batch 4 but lower throughput at batch 8, and faster incremental KV reuse than full-prefix recomputation. FP16 reduced weight payload but increased CPU NumPy latency; the single checked prompt retained the same greedy next token. These observations support further tests on a pretrained model and optimized serving engine. They do not establish language quality, GPU behavior, a general batch optimum, or universal cache/precision benefits.

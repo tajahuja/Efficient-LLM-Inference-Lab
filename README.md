@@ -84,23 +84,25 @@ Fixed 64-token prompt, batch scaling:
 | 4 | 4.840 | 1.210 | 6611.7 |
 | 8 | 10.229 | 1.279 | 6256.5 |
 
-Precision and cache checks:
+Model width, precision, and cache checks:
 
 | Comparison | Tensor payload (bytes) | End-to-end median (ms) |
 |---|---:|---:|
+| Width 32 | 200,704 | 1.518 |
+| Width 64 | 598,016 | 1.641 |
 | float32 weights (KV stays FP32) | 598,016 | 1.702 |
 | float16 weights (KV stays FP32) | 335,872 | 39.114 |
 | KV cache | 598,016 | 1.571 |
 | Full-prefix recomputation | 524,288 | 5.044 |
 
-Model width 32 to 64 increased weight payload from 163,840 to 524,288 bytes; corresponding end-to-end latency was 1.961 ms and 2.193 ms. FP16 weights halved the weight payload, while the measured end-to-end time was 39.254 ms versus 2.202 ms in FP32; this CPU NumPy result is implementation-specific. The fixed prompt had the same greedy next token and maximum absolute logit difference 0.007082. KV storage remained FP32.
+The width-32/width-64 cases used 163,840/524,288 bytes of weights, with end-to-end medians of 1.518/1.641 ms. FP16 weights halved the weight payload, but median end-to-end latency was 39.114 ms versus 1.702 ms in this CPU NumPy run. On the single fixed prompt, the greedy next token agreed with FP32 and maximum absolute logit difference was 0.007082; this is not a language-quality assessment.
 
 ### Analysis
 
-- In this run, prefill latency and the logical FP32 KV payload both increased with prompt length. This is expected for this implementation's dense attention path, but the exact timing slope is implementation and host dependent.
-- Aggregate throughput increased from batch 1 to batch 4 and was nearly flat from 4 to 8 in this run. Amortized per-request latency increased with batch size. This supports a throughput/latency trade-off for this toy fixed-batch workload; it does not establish a serving optimum.
-- Incremental KV reuse was faster than full-prefix recomputation for the tested prompt and output length on this implementation. The result reflects an intentionally simple CPU code path, and is not a general estimate of the benefit in optimized model servers.
-- Parameter payload is small by design. KV payload is an arithmetic tensor-size estimate, not peak measured memory.
+- Prefill latency increased from 0.370 ms at 16 tokens to 7.425 ms at 256 tokens; logical FP32 KV payload also increased. The exact timing curve depends on this implementation and host.
+- Aggregate throughput rose from 3510.5 tokens/s at batch 1 to 6611.7 at batch 4, then was 6256.5 at batch 8. Amortized per-request latency was 2.279, 1.210, and 1.279 ms at batches 1, 4, and 8. This fixed-batch result is not a serving optimum.
+- Incremental KV reuse measured 1.571 ms versus 5.044 ms for full-prefix recomputation in this implementation; the magnitude is not generalizable to optimized model servers.
+- Parameter and KV payload are tensor-size estimates, not measured peak memory.
 
 The exact hypotheses, controls, alternate explanations, and metric definitions are in [`docs/methodology.md`](docs/methodology.md), [`docs/research_notes.md`](docs/research_notes.md), and [`results/summary.md`](results/summary.md). Nine figures are linked below.
 
@@ -125,14 +127,10 @@ The exact hypotheses, controls, alternate explanations, and metric definitions a
 - [Model size vs. estimated memory](results/figures/model_size_memory.png)
 - [Precision vs. estimated memory](results/figures/precision_memory.png)
 - [Precision vs. latency](results/figures/precision_latency.png)
-- [Model size vs. latency](results/figures/model_size_latency.png)
-- [Model size vs. estimated memory](results/figures/model_size_memory.png)
-- [Precision vs. estimated memory](results/figures/precision_memory.png)
-- [Precision vs. latency](results/figures/precision_latency.png)
 
 ## Limitations
 
-The result set has one CPU host, one tiny untrained model, synthetic token IDs, contexts no longer than 256, fixed batches, and five repeats. There is no CUDA/GPU run, pretrained model, INT8/4-bit quantization, memory profiler, online request load, continuous batching, or output-quality evaluation. See [limitations](docs/limitations.md) for the full claim boundary.
+The result set has one CPU host, two tiny untrained model widths, synthetic token IDs, contexts no longer than 256, fixed batches, and five repeats. There is no CUDA/GPU run, pretrained model, INT8/4-bit quantization, memory profiler, online request load, continuous batching, or output-quality evaluation. See [limitations](docs/limitations.md) for the full claim boundary.
 
 ## Reproducibility
 

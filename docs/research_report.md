@@ -49,7 +49,7 @@ The standard run produced 15 rows across five workload types. Detailed tables ar
 
 - Prefill median rose from 0.370 ms (16 prompt tokens) to 7.425 ms (256 tokens), batch size 1.
 - Aggregate throughput rose from 3510.5 tokens/s at batch 1 to 6611.7 at batch 4, and was 6256.5 at batch 8. Amortized per-request latency was not monotonic: 2.279 ms, 1.210 ms, 1.279 ms for batch sizes 1, 4, and 8, respectively.
-- Width 32 used 163,840 bytes of parameter arrays and measured 1.961 ms end-to-end; width 64 used 524,288 bytes and measured 1.641 ms under the same prompt and batch.
+- Width 32 used 163,840 bytes of parameter arrays and measured 1.518 ms end-to-end; width 64 used 524,288 bytes and measured 1.641 ms under the same prompt and batch.
 - FP16 used 262,144 parameter bytes versus 524,288 in FP32, while end-to-end latency was 39.114 ms versus 1.702 ms. On the fixed synthetic prompt, next-token argmax agreed and max absolute logit difference was 0.007082.
 - Incremental KV reuse measured 1.571 ms end-to-end versus 5.044 ms for full-prefix recomputation.
 
